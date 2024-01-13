@@ -1,0 +1,13 @@
+ @buildType <PyModule>
+
+ @buildSrc <src>
+ @testSrc <tsrc>
+
+ @BUILD
+ @TEST
+
+$var <hello, world!>
+O<$var
+I>$foo
+O<<message:>
+O<$foo

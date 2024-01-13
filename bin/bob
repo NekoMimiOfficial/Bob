@@ -1,0 +1,72 @@
+#!/usr/bin/python3
+
+import sys
+import subprocess
+from os.path import exists
+
+from NekoMimi import utils as nm
+from NekoMimi import colourimi as cm
+
+PWD = subprocess.getoutput("bash -c pwd")
+HOME = subprocess.getoutput("bash -c echo $HOME")
+
+class Pallet:
+    smallFG = "#888888"
+    mochaBG = "#1E1E2E"
+    mochaFG = "#CDD6F4"
+    catBlue = "#799DDB"
+    catRed = "#F38BA8"
+    catCyan = "#89DCEB"
+    catPink = "#F5C2E7"
+    catYellow = "#F9E2AF"
+    catOrange = "#F3B993"
+    catGreen = "#A2DCAA"
+    catPurr = "#C6A1F0"
+
+factory = cm.colourFactory()
+face = """ ^ ^  | Bob the build system  v0.0.1 |
+=UwU= | > http://nekomimi.tilde.team |
+ w w  | NekoMimi @ NekoLabs LLC 2024 |
+"""
+help = """Bob's blueprint:
+
+-h          : shows this help message
+-p <file>   : sets default python run file for current project
+-pt <file>  : creates a python template file
+-ct <file>  : creates a C template file
+-Ct <file>  : creates a C++ template file
+
+blueprint v1
+"""
+
+def kprint(text, col=Pallet.mochaFG):
+    factory.text = text
+    factory.colour = col
+    factory.cinit()
+    factory.cprint()
+    return
+
+def bobParser(bobin):
+    pass
+
+def buildProc():
+    pass
+
+def pythonProc():
+    pass
+
+def mainProc():
+    kprint(nm.figlet("Bob"), Pallet.mochaFG)
+    kprint(face, Pallet.smallFG)
+    if exists(f"{PWD}/build.bob"):
+        buildProc()
+    elif exists(f"{PWD}/main.py"):
+        pythonProc()
+    elif "-h" in sys.argv:
+        kprint(help, Pallet.catYellow)
+    else:
+        kprint("No suitable operation found", Pallet.catRed)
+        kprint("run bob -h for more help", Pallet.catRed)
+
+if __name__ == "__main__":
+    mainProc()
