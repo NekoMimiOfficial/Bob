@@ -1,14 +1,22 @@
 #!/usr/bin/python3
 
 import sys
-import subprocess
+from datetime import datetime
+from subprocess import getoutput
 from os.path import exists
 
 from NekoMimi import utils as nm
 from NekoMimi import colourimi as cm
 
-PWD = subprocess.getoutput("bash -c pwd")
-HOME = subprocess.getoutput("bash -c echo $HOME")
+YEAR = datetime.now().year
+PWD = getoutput("bash -c pwd")
+HOME = getoutput("bash -c echo $HOME")
+TEMPATH = f"{HOME}/.local/share/Bob/templates"
+
+class Templates:
+    PYMODULE = 'pymodule'
+
+    tlist = [PYMODULE]
 
 class Pallet:
     smallFG = "#888888"
@@ -24,20 +32,33 @@ class Pallet:
     catPurr = "#C6A1F0"
 
 factory = cm.colourFactory()
-face = """ ^ ^  | Bob the build system  v0.0.1 |
+face = """ ^ ^  | Bob the build system  v0.0.2 |
 =UwU= | > http://nekomimi.tilde.team |
  w w  | NekoMimi @ NekoLabs LLC 2024 |
 """
 help = """Bob's blueprint:
 
 -h          : shows this help message
--p <file>   : sets default python run file for current project
--pt <file>  : creates a python template file
--ct <file>  : creates a C template file
--Ct <file>  : creates a C++ template file
+-t <type>  : creates a template file supports::[pymodule]
 
 blueprint v1
 """
+
+initTemplate = """
+__title__ = "DDCC"
+__author__ = "NekoMimiOfficial"
+__author_email__ = "nekomimi@tilde.team"
+__description__ = "placeholder"
+__repository__ = "https://github.com/NekoMimiOfficial/DDCC"
+__bug_tracker__ = "https://github.com/NekoMimiOfficial/DDCC/issues"
+__license__ = "Apache2"
+__pyver__ = ">=3.11"
+__target__ = "OS Independent"
+__requirements__ = []
+
+__version__ = '0.1.0'
+"""
+
 
 def kprint(text, col=Pallet.mochaFG):
     factory.text = text
@@ -46,24 +67,31 @@ def kprint(text, col=Pallet.mochaFG):
     factory.cprint()
     return
 
-def bobParser(bobin):
-    pass
-
-def buildProc():
-    pass
-
-def pythonProc():
-    pass
+def templateBuilder(temptype):
+    if temptype == Templates.PYMODULE:
+        projectName = PWD.split("/")[-1]
+        getoutput(f"bash -c 'mkdir {projectName}'")
+        getoutput(f"bash -c 'cp $HOME/.local/share/Bob/templates/pymodule/* $(pwd)/'")
+        nm.write(f"# {projectName}  \nPlaceholder", "./README.md")
+        lice = nm.read(f"./LICENSE")
+        getoutput("bash -c 'rm ./LICENSE'")
+        nm.write(lice.replace("20XX", str(YEAR)), "./LICENSE")
+        nm.write(initTemplate.replace("DDCC", projectName), f"./{projectName}/__init__.py")
+        getoutput("bash -c 'git init'")
 
 def mainProc():
     kprint(nm.figlet("Bob"), Pallet.mochaFG)
     kprint(face, Pallet.smallFG)
-    if exists(f"{PWD}/build.bob"):
-        buildProc()
-    elif exists(f"{PWD}/main.py"):
-        pythonProc()
-    elif "-h" in sys.argv:
+    if "-h" in sys.argv:
         kprint(help, Pallet.catYellow)
+
+    elif '-t' in sys.argv:
+        if len(sys.argv) > 3 or sys.argv[2] not in Templates.tlist:
+            kprint("Invalid template option", Pallet.catRed)
+            kprint("run bob -h for more help", Pallet.catRed)
+            exit(1)
+        templateBuilder(sys.argv[2])
+
     else:
         kprint("No suitable operation found", Pallet.catRed)
         kprint("run bob -h for more help", Pallet.catRed)
