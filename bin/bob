@@ -18,6 +18,44 @@ class Templates:
 
     tlist = [PYMODULE]
 
+class BuildTypes:
+    PYMODULE = 'PyModule'
+
+    blist = [PYMODULE]
+
+class Tokens:
+    class BuildType:
+        def __init__(self, btype) -> None:
+            self.data = btype
+        def __repr__(self) -> str:
+            return 'BUILDTYPE'
+
+    class BuildSrc:
+        def __init__(self, src) -> None:
+            self.data = src
+        def __repr__(self) -> str:
+            return 'BUILDSRC'
+
+    class BUILD:
+        def run(self):
+            pass
+        def __repr__(self) -> str:
+            return '@BUILD'
+
+    class TestSrc:
+        def __init__(self, src) -> None:
+            self.data = src
+        def __repr__(self) -> str:
+            return 'TESTSRC'
+
+    class TEST:
+        def run(self):
+            pass
+        def __repr__(self) -> str:
+            return "@TEST"
+
+    TOKENS = ['buildType', 'buildSrc', 'BUILD', 'testSrc', 'TEST']
+
 class Pallet:
     smallFG = "#888888"
     mochaBG = "#1E1E2E"
@@ -67,6 +105,118 @@ def kprint(text, col=Pallet.mochaFG):
     factory.cprint()
     return
 
+def error(errmsg:str , ercode: str, excode: int):
+    kprint("PARSE ERROR:", Pallet.catRed)
+    kprint("~~~~~~~~~~~~", Pallet.catRed)
+    print('')
+    kprint(errmsg, Pallet.catOrange)
+    kprint("Contact Neko for broken build file support", Pallet.catYellow)
+    kprint(f"Err {ercode}", Pallet.catRed)
+    exit(excode)
+
+def safe_enc(l, c, x):
+    if len(x[l]) <= (c+1):
+        error(f"EOL without getting params\nLine: {l+1} has ended without reaching a param\nLine: '{x[l]}'", "0xF6", 6)
+    else:
+        return (c+1)
+
+def p_safe_enc(l, c, x):
+    if len(x[l]) <= (c+1):
+        error(f"Unmatched param bracket\nLine: {l+1} has ended without reaching a param close bracket '>'\nLine: '{x[l]}'", "0xF6", 6)
+    else:
+        return (c+1)
+
+def Lexer(lexemes):
+    tokens = []
+    #lexe each line
+    l = 0
+    while True:
+        #lexe each char
+        c = 0
+        word = ''
+        while True:
+            if lexemes[l] == '':
+                break
+            getC = lexemes[l][c]
+            # print(lexemes[l], c, [getC])
+            if c == 0:
+                if getC not in ('@', '$'):
+                    c = 0
+                    word = ''
+                    break
+                else:
+                    c += 1
+                    if getC == '$':
+                        break
+                    continue
+
+            if word in Tokens.TOKENS and lexemes[l][c] == ' ':
+                tok = word
+                word = ''
+                c = safe_enc(l, c, lexemes)
+                getC = lexemes[l][c]
+                if getC == '<':
+                    c = p_safe_enc(l, c, lexemes)
+                    param = ''
+                    while True:
+                        getC = lexemes[l][c]
+                        if getC == '>':
+                            break
+                        param += getC
+                        c = p_safe_enc(l, c, lexemes)
+
+                    if tok == 'buildType':
+                        tokens.append(Tokens.BuildType(param))
+                        break
+
+                    elif tok == 'buildSrc':
+                        tokens.append(Tokens.BuildSrc(param))
+                        break
+
+                    elif tok == 'testSrc':
+                        tokens.append(Tokens.TestSrc(param))
+                        break
+
+                else:
+                    error(f"Missing parameter for token: '{tok}'\nEnsure starting param bracket '<' must be found on line: {l+1}, col: {c}", "0xF4", 4)
+
+
+            if not getC == " ":
+                word += getC
+            else:
+                error(f"line: {l+1}, col: 2-{c}, [unknown token '{word}']\navailable tokens: {Tokens.TOKENS}", "0xF2", 2)
+            
+            if word == "BUILD":
+                tokens.append(Tokens.BUILD())
+                tokens.append('x')
+                break
+            if word == "TEST":
+                tokens.append(Tokens.TEST())
+                break
+
+            if len(lexemes[l]) < c+2: #type: ignore
+                error(f"EOL without finding a suitable token\nNo token found on line: {l+1}\ncontents: '{lexemes[l]}'\nSupported tokens: {Tokens.TOKENS}", "0xF5", 5)
+            c += 1 #type: ignore
+
+        if len(lexemes) < l+2:
+            if not 'x' in tokens:
+                error(f"Out of file length\nThe file ended without a complete build instruction set\nEOF line: {l}", "0xF3", 3)
+            else:
+                u = 0
+                for _ in tokens:
+                    if _ == 'x':
+                        tokens.pop(u)
+                    u += 1
+                return tokens
+
+        l += 1
+
+def runScript():
+    script = nm.read('./build.bob')
+    lexemes = script.split("\n")
+    tokens = Lexer(lexemes)
+    print(tokens)
+
 def templateBuilder(temptype):
     if temptype == Templates.PYMODULE:
         projectName = PWD.split("/")[-1]
@@ -91,6 +241,9 @@ def mainProc():
             kprint("run bob -h for more help", Pallet.catRed)
             exit(1)
         templateBuilder(sys.argv[2])
+
+    elif exists("./build.bob"):
+        runScript()
 
     else:
         kprint("No suitable operation found", Pallet.catRed)

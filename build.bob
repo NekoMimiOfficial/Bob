@@ -1,10 +1,10 @@
- @buildType <PyModule>
+@buildType <PyModule>
 
- @buildSrc <src>
- @testSrc <tsrc>
+@buildSrc <src>
+@testSrc <tsrc>
 
- @BUILD
- @TEST
+@BUILD
+@TEST
 
 $var <hello, world!>
 O<$var
