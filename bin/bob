@@ -4,6 +4,7 @@ import sys
 from datetime import datetime
 from subprocess import getoutput
 from os.path import exists
+from typing import List
 
 from NekoMimi import utils as nm
 from NekoMimi import colourimi as cm
@@ -25,32 +26,35 @@ class BuildTypes:
 
 class Tokens:
     class BuildType:
-        def __init__(self, btype) -> None:
+        def __init__(self, btype, l) -> None:
             self.data = btype
+            self.line = l
         def __repr__(self) -> str:
             return 'BUILDTYPE'
 
     class BuildSrc:
-        def __init__(self, src) -> None:
+        def __init__(self, src, l) -> None:
             self.data = src
+            self.line = l
         def __repr__(self) -> str:
             return 'BUILDSRC'
 
     class BUILD:
-        def run(self):
-            pass
+        def run(self, build: str, data: List[str]):
+            print("Building...", build, data)
         def __repr__(self) -> str:
             return '@BUILD'
 
     class TestSrc:
-        def __init__(self, src) -> None:
+        def __init__(self, src, l) -> None:
             self.data = src
+            self.line = l
         def __repr__(self) -> str:
             return 'TESTSRC'
 
     class TEST:
-        def run(self):
-            pass
+        def run(self, build: str, data: List[str]):
+            print("Testing...", build, data)
         def __repr__(self) -> str:
             return "@TEST"
 
@@ -128,6 +132,7 @@ def p_safe_enc(l, c, x):
 
 def Lexer(lexemes):
     tokens = []
+    variables = {}
     #lexe each line
     l = 0
     while True:
@@ -145,9 +150,24 @@ def Lexer(lexemes):
                     word = ''
                     break
                 else:
+                    if len(lexemes[l]) <= 1:
+                        break
                     c += 1
                     if getC == '$':
-                        break
+                        if " " in lexemes[l]:
+                            if not lexemes[l].split(" ", 1)[1].startswith("<"):
+                                if '<' in lexemes[l].split(" ", 1)[0]:
+                                    error(f"Typo found on line: {l+1}, col: {len(lexemes[l].split(' ', 1)) + 3}\nMissing \"space\" after variable name\nVariable syntax: $name <value>", "0xF9", 9)
+                                error(f"Type found on line: {l+1}, col: {len(lexemes[l].split(' ', 1)) + 4}\nMissing '<' after variable name\nVariable syntax: $name <value>", "0xFA", 10)
+                            split = lexemes[l].split(" ", 1)
+                            name = split[0].removeprefix("$")
+                            if not '<' in split[1] or not '>' in split[1]:
+                                error(f"Variable value assign error\nNo value found for variable: {name}, enclosed by '<' and '>'\nLine: {l+1}, \"{lexemes[l]}\"", "0xF7", 7)
+                            value = split[1].removeprefix("<").removesuffix(">")
+                            variables[name] = value
+                            break
+                        else:
+                            error(f"Variable assignment terminated without value\nNo value assigned to variable on line: {l+1}\nline: \"{lexemes[l]}\"\nVariable syntax: $name <value>", "0xF8", 8)
                     continue
 
             if word in Tokens.TOKENS and lexemes[l][c] == ' ':
@@ -166,15 +186,15 @@ def Lexer(lexemes):
                         c = p_safe_enc(l, c, lexemes)
 
                     if tok == 'buildType':
-                        tokens.append(Tokens.BuildType(param))
+                        tokens.append(Tokens.BuildType(param, l+1))
                         break
 
                     elif tok == 'buildSrc':
-                        tokens.append(Tokens.BuildSrc(param))
+                        tokens.append(Tokens.BuildSrc(param, l+1))
                         break
 
                     elif tok == 'testSrc':
-                        tokens.append(Tokens.TestSrc(param))
+                        tokens.append(Tokens.TestSrc(param, l+1))
                         break
 
                 else:
@@ -207,15 +227,30 @@ def Lexer(lexemes):
                     if _ == 'x':
                         tokens.pop(u)
                     u += 1
-                return tokens
+                return (tokens, variables)
 
         l += 1
 
 def runScript():
     script = nm.read('./build.bob')
     lexemes = script.split("\n")
-    tokens = Lexer(lexemes)
-    print(tokens)
+    tokens, vars = Lexer(lexemes)
+    build = "NONE"
+    data = { 'src' : 'NONE', 'test' : 'NONE' }
+    for token in tokens:
+        if getattr(token, 'run', 'NI') == 'NI':
+            if token.__repr__() == 'BUILDTYPE':
+                build = token.data
+            elif token.__repr__() == 'BUILDSRC':
+                data['src'] = token.data
+            elif token.__repr__() == 'TESTSRC':
+                data['test'] = token.data
+
+            else:
+                error("Internal post-lexer error", "0xFB", 11)
+
+        else:
+            token.run(build, data)
 
 def templateBuilder(temptype):
     if temptype == Templates.PYMODULE:
