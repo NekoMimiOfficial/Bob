@@ -1,7 +1,9 @@
 @buildType <PyModule>
 
-@buildSrc <src>
-@testSrc <tsrc>
+$srcdir <./bin/>
+
+@buildSrc <$srcdir>
+@testSrc <templates>
 
 @BUILD
 @TEST
