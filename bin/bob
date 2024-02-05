@@ -3,8 +3,10 @@
 import sys
 from datetime import datetime
 from subprocess import getoutput
+from importlib import import_module as load
 from os.path import exists
 from typing import List
+import setuptools
 
 from NekoMimi import utils as nm
 from NekoMimi import colourimi as cm
@@ -42,6 +44,48 @@ class Tokens:
     class BUILD:
         def run(self, build: str, data: List[str]):
             print("Building...", build, data)
+            if build == BuildTypes.PYMODULE:
+
+                "[!!!] WHY TF IS THE LOADING NOT WORKING"
+                init = load(f"{data['src'].split('/')[1]}", 'NekoTPy')
+                
+                print(dir(init))
+                PLHPVER = init.__pyver__.split("=", 1)[1].split(".", 1)[0]
+                PLHLICENSE = init.__license__
+                PLHAUTH = init.__author__
+                PLHMAIL = init.__author_email__
+                PLHREP = init.__repository__
+                PLHVER = init.__version__
+                PLHSRCF = data["src"].split("/", 1)[1]
+                PLHPVERVERB = init.__pyver__
+                PLHBUG = init.__bug_tracker__
+                PLHDES = init.__description__
+                PLHNAME = PLHSRCF
+                PLHTARGET = init.__target__
+                PLHINSREQ = init.__requirements__
+                README = nm.read("README.md")
+
+                setuptools.setup(
+                    name= PLHNAME,
+                    version= PLHVER,
+                    author= PLHAUTH, 
+                    author_email= PLHMAIL, 
+                    description= PLHDES, 
+                    long_description= README, 
+                    long_description_content_type= 'text/markdown', 
+                    url= PLHREP, 
+                    project_urls= { "Bug Tracker" : PLHBUG },
+                    classifiers= [
+                        f"Programming Language :: Python :: {PLHPVER}", 
+                        f"License :: OSI Approved :: {PLHLICENSE}", 
+                        f"Operating System :: {PLHTARGET}",
+                    ],
+                    package_dir= {'./': PLHSRCF}, 
+                    install_requires= PLHINSREQ, 
+                    packages= setuptools.find_packages(), 
+                    python_requires= PLHPVERVERB
+                )
+                
         def __repr__(self) -> str:
             return '@BUILD'
 
@@ -74,16 +118,15 @@ class Pallet:
     catPurr = "#C6A1F0"
 
 factory = cm.colourFactory()
-face = """ ^ ^  | Bob the build system  v0.0.2 |
+face = """ ^ ^  | Bob the build system  v0.0.3 |
 =UwU= | > http://nekomimi.tilde.team |
  w w  | NekoMimi @ NekoLabs LLC 2024 |
 """
 help = """Bob's blueprint:
 
 -h          : shows this help message
--t <type>  : creates a template file supports::[pymodule]
-
-blueprint v1
+-t <type>   : creates a template file
+              supports::[pymodule, c++]
 """
 
 initTemplate = """
@@ -301,7 +344,7 @@ def templateBuilder(temptype):
 def mainProc():
     kprint(nm.figlet("Bob"), Pallet.mochaFG)
     kprint(face, Pallet.smallFG)
-    if "-h" in sys.argv:
+    if "-h" in sys.argv or "--help" in sys.argv:
         kprint(help, Pallet.catYellow)
 
     elif '-t' in sys.argv:
