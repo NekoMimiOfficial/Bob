@@ -49,10 +49,13 @@ class Tokens:
                 "[!!!] WHY TF IS THE LOADING NOT WORKING"
                 "Numbers of hours wasted: 4"
                 sys.path.append(".")
+                if len(sys.argv) < 2:
+                    sys.argv.append("bdist_wheel")
+                else:
+                    sys.argv[1] = "bdist_wheel"
                 "HOLY SHTICK!!! IT WORKS!!!"
                 init = importlib.import_module(data["src"].split("/")[1])
                 
-                print(dir(init))
                 PLHPVER = init.__pyver__.split("=", 1)[1].split(".", 1)[0]
                 PLHLICENSE = init.__license__
                 PLHAUTH = init.__author__
@@ -63,7 +66,7 @@ class Tokens:
                 PLHPVERVERB = init.__pyver__
                 PLHBUG = init.__bug_tracker__
                 PLHDES = init.__description__
-                PLHNAME = PLHSRCF
+                PLHNAME = PLHSRCF.split("/")[0]
                 PLHTARGET = init.__target__
                 PLHINSREQ = init.__requirements__
                 README = nm.read("README.md")
@@ -75,22 +78,20 @@ class Tokens:
                     author_email= PLHMAIL, 
                     description= PLHDES, 
                     long_description= README, 
-                    long_description_content_type= 'text/markdown', 
+                    long_description_content_type="text/markdown", 
                     url= PLHREP, 
-                    project_urls= { "Bug Tracker" : PLHBUG },
-                    classifiers= [
+                    project_urls={ "Bug Tracker" : PLHBUG },
+                    classifiers=[
                         f"Programming Language :: Python :: {PLHPVER}", 
                         f"License :: OSI Approved :: {PLHLICENSE}", 
-                        f"Operating System :: {PLHTARGET}",
+                        f"Operating System :: {PLHTARGET}"
                     ],
-                    package_dir= {'./': PLHSRCF}, 
+                    package_dir= {"./": PLHSRCF}, 
                     install_requires= PLHINSREQ, 
                     packages= setuptools.find_packages(), 
                     python_requires= PLHPVERVERB
                 )
 
-                print(PLHTARGET)
-                
         def __repr__(self) -> str:
             return '@BUILD'
 
