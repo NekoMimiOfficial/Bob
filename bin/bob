@@ -1,10 +1,8 @@
 #!/usr/bin/python3
 
-import os
 import sys
 from datetime import datetime
 from subprocess import getoutput
-from importlib import import_module as load
 import importlib
 from os.path import exists
 from typing import List
@@ -17,8 +15,6 @@ YEAR = datetime.now().year
 PWD = getoutput("bash -c pwd")
 HOME = getoutput("bash -c echo $HOME")
 TEMPATH = f"{HOME}/.local/share/Bob/templates"
-
-os.chdir(PWD)
 
 class Templates:
     PYMODULE = 'pymodule'
@@ -51,11 +47,10 @@ class Tokens:
             if build == BuildTypes.PYMODULE:
 
                 "[!!!] WHY TF IS THE LOADING NOT WORKING"
-                "Numbers of hours wasted: 3"
-                mod_path = os.path.join(PWD, 'NekoTPy')
-                spec = importlib.util.find_spec('NekoTPy', mod_path)
-                print(spec)
-                init = load('NekoTPy', mod_path)
+                "Numbers of hours wasted: 4"
+                sys.path.append(".")
+                "HOLY SHTICK!!! IT WORKS!!!"
+                init = importlib.import_module(data["src"].split("/")[1])
                 
                 print(dir(init))
                 PLHPVER = init.__pyver__.split("=", 1)[1].split(".", 1)[0]
@@ -64,7 +59,7 @@ class Tokens:
                 PLHMAIL = init.__author_email__
                 PLHREP = init.__repository__
                 PLHVER = init.__version__
-                PLHSRCF = data["src"].split("/", 1)[1]
+                PLHSRCF = data["src"].split("/", 1)[1] #ignore type
                 PLHPVERVERB = init.__pyver__
                 PLHBUG = init.__bug_tracker__
                 PLHDES = init.__description__
@@ -93,6 +88,8 @@ class Tokens:
                     packages= setuptools.find_packages(), 
                     python_requires= PLHPVERVERB
                 )
+
+                print(PLHTARGET)
                 
         def __repr__(self) -> str:
             return '@BUILD'
