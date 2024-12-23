@@ -11,10 +11,14 @@ import setuptools
 from NekoMimi import utils as nm
 from NekoMimi import colourimi as cm
 
-YEAR = datetime.now().year
-PWD = getoutput("bash -c pwd")
-HOME = getoutput("bash -c echo $HOME")
-TEMPATH = f"{HOME}/.local/share/Bob/templates"
+
+__version__ = '0.0.4'
+__build__ = 0x020001
+
+# TEMPLATE SECTION:
+# ~~~~~~~~~~~~~~~~~
+# includes template building for python and cmake
+# building templates is segmented into multiple functions
 
 pyTemplate = """
 __title__ = "DDCC"
@@ -31,11 +35,31 @@ __requirements__ = []
 __version__ = '0.1.0'
 """
 
+def pyTemplateBuilder():
+    projectName = PWD.split("/")[-1]
+    getoutput(f"bash -c 'mkdir {projectName}'")
+    getoutput(f"bash -c 'cp $HOME/.local/share/Bob/templates/pymodule/* $(pwd)/'")
+    nm.write(f"# {projectName}  \nPlaceholder", "./README.md")
+    lice = nm.read(f"./LICENSE")
+    getoutput("bash -c 'rm ./LICENSE'")
+    nm.write(lice.replace("20XX", str(YEAR)), "./LICENSE")
+    nm.write(pyTemplate.replace("DDCC", projectName), f"./{projectName}/__init__.py")
+    getoutput("bash -c 'git init'")
+
 
 class Templates:
     PYMODULE = 'pymodule'
 
     tlist = [PYMODULE]
+
+# END OF TEMPLATE SECTION
+# ~~~~~~~~~~~~~~~~~~~~~~~
+
+
+# BUILDING SECTION:
+# ~~~~~~~~~~~~~~~~~
+# This section includes functions for building the projects
+# Each build type is segmented into multiple functions
 
 class BuildTypes:
     PYMODULE = 'PyModule'
@@ -89,6 +113,12 @@ def pybuild(data: List[str]):
         python_requires= PLHPVERVERB
     )
 
+# END OF BUILDING SECTION
+# ~~~~~~~~~~~~~~~~~~~~~~~
+
+# CLASSES AND DATATYPES:
+# ~~~~~~~~~~~~~~~~~~~~~~
+
 class Tokens:
     class BuildType:
         def __init__(self, btype, l) -> None:
@@ -141,17 +171,27 @@ class Pallet:
     catGreen = "#A2DCAA"
     catPurr = "#C6A1F0"
 
+# VARIABLES:
+# ~~~~~~~~~~
+
+YEAR = datetime.now().year
+PWD = getoutput("bash -c pwd")
+HOME = getoutput("bash -c echo $HOME")
+TEMPATH = f"{HOME}/.local/share/Bob/templates"
 factory = cm.colourFactory()
-face = """ ^ ^  | Bob the build system  v0.0.3 |
+face = """ ^ ^  | Bob the build system  v<TMP> |
 =UwU= | > http://nekomimi.tilde.team |
  w w  | NekoMimi @ NekoLabs LLC 2024 |
-"""
-help = """Bob's blueprint:
+""".replace("<TMP>", __version__)
+help_msg = """Bob's blueprint:
 
 -h          : shows this help message
 -t <type>   : creates a template file
               supports::[pymodule, c++]
 """
+
+# FUNCTIONS AND METHODS:
+# ~~~~~~~~~~~~~~~~~~~~~~
 
 def kprint(text, col=Pallet.mochaFG):
     factory.text = text
@@ -339,21 +379,12 @@ def runScript():
 
 def templateBuilder(temptype):
     if temptype == Templates.PYMODULE:
-        projectName = PWD.split("/")[-1]
-        getoutput(f"bash -c 'mkdir {projectName}'")
-        getoutput(f"bash -c 'cp $HOME/.local/share/Bob/templates/pymodule/* $(pwd)/'")
-        nm.write(f"# {projectName}  \nPlaceholder", "./README.md")
-        lice = nm.read(f"./LICENSE")
-        getoutput("bash -c 'rm ./LICENSE'")
-        nm.write(lice.replace("20XX", str(YEAR)), "./LICENSE")
-        nm.write(pyTemplate.replace("DDCC", projectName), f"./{projectName}/__init__.py")
-        getoutput("bash -c 'git init'")
-
+        pyTemplateBuilder()
 def mainProc():
     kprint(nm.figlet("Bob"), Pallet.mochaFG)
     kprint(face, Pallet.smallFG)
     if "-h" in sys.argv or "--help" in sys.argv:
-        kprint(help, Pallet.catYellow)
+        kprint(help_msg, Pallet.catYellow)
 
     elif '-t' in sys.argv:
         if len(sys.argv) > 3 or sys.argv[2] not in Templates.tlist:
