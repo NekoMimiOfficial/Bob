@@ -16,6 +16,22 @@ PWD = getoutput("bash -c pwd")
 HOME = getoutput("bash -c echo $HOME")
 TEMPATH = f"{HOME}/.local/share/Bob/templates"
 
+pyTemplate = """
+__title__ = "DDCC"
+__author__ = "NekoMimiOfficial"
+__author_email__ = "nekomimi@tilde.team"
+__description__ = "placeholder"
+__repository__ = "https://github.com/NekoMimiOfficial/DDCC"
+__bug_tracker__ = "https://github.com/NekoMimiOfficial/DDCC/issues"
+__license__ = "Apache2"
+__pyver__ = ">=3.11"
+__target__ = "OS Independent"
+__requirements__ = []
+
+__version__ = '0.1.0'
+"""
+
+
 class Templates:
     PYMODULE = 'pymodule'
 
@@ -25,6 +41,53 @@ class BuildTypes:
     PYMODULE = 'PyModule'
 
     blist = [PYMODULE]
+
+def pybuild(data: List[str]):
+    "[!!!] WHY TF IS THE LOADING NOT WORKING"
+    "Numbers of hours wasted: 4"
+    sys.path.append(".")
+    if len(sys.argv) < 2:
+        sys.argv.append("bdist_wheel")
+    else:
+        sys.argv[1] = "bdist_wheel"
+    "HOLY SHTICK!!! IT WORKS!!!"
+    init = importlib.import_module(data["src"].split("/")[1])
+    
+    PLHPVER = init.__pyver__.split("=", 1)[1].split(".", 1)[0]
+    PLHLICENSE = init.__license__
+    PLHAUTH = init.__author__
+    PLHMAIL = init.__author_email__
+    PLHREP = init.__repository__
+    PLHVER = init.__version__
+    PLHSRCF = data["src"].split("/", 1)[1] #ignore type
+    PLHPVERVERB = init.__pyver__
+    PLHBUG = init.__bug_tracker__
+    PLHDES = init.__description__
+    PLHNAME = PLHSRCF.split("/")[0]
+    PLHTARGET = init.__target__
+    PLHINSREQ = init.__requirements__
+    README = nm.read("README.md")
+
+    setuptools.setup(
+        name= PLHNAME,
+        version= PLHVER,
+        author= PLHAUTH, 
+        author_email= PLHMAIL, 
+        description= PLHDES, 
+        long_description= README, 
+        long_description_content_type="text/markdown", 
+        url= PLHREP, 
+        project_urls={ "Bug Tracker" : PLHBUG },
+        classifiers=[
+            f"Programming Language :: Python :: {PLHPVER}", 
+            f"License :: OSI Approved :: {PLHLICENSE}", 
+            f"Operating System :: {PLHTARGET}"
+        ],
+        package_dir= {"./": PLHSRCF}, 
+        install_requires= PLHINSREQ, 
+        packages= setuptools.find_packages(), 
+        python_requires= PLHPVERVERB
+    )
 
 class Tokens:
     class BuildType:
@@ -45,52 +108,7 @@ class Tokens:
         def run(self, build: str, data: List[str]):
             print("Building...", build, data)
             if build == BuildTypes.PYMODULE:
-
-                "[!!!] WHY TF IS THE LOADING NOT WORKING"
-                "Numbers of hours wasted: 4"
-                sys.path.append(".")
-                if len(sys.argv) < 2:
-                    sys.argv.append("bdist_wheel")
-                else:
-                    sys.argv[1] = "bdist_wheel"
-                "HOLY SHTICK!!! IT WORKS!!!"
-                init = importlib.import_module(data["src"].split("/")[1])
-                
-                PLHPVER = init.__pyver__.split("=", 1)[1].split(".", 1)[0]
-                PLHLICENSE = init.__license__
-                PLHAUTH = init.__author__
-                PLHMAIL = init.__author_email__
-                PLHREP = init.__repository__
-                PLHVER = init.__version__
-                PLHSRCF = data["src"].split("/", 1)[1] #ignore type
-                PLHPVERVERB = init.__pyver__
-                PLHBUG = init.__bug_tracker__
-                PLHDES = init.__description__
-                PLHNAME = PLHSRCF.split("/")[0]
-                PLHTARGET = init.__target__
-                PLHINSREQ = init.__requirements__
-                README = nm.read("README.md")
-
-                setuptools.setup(
-                    name= PLHNAME,
-                    version= PLHVER,
-                    author= PLHAUTH, 
-                    author_email= PLHMAIL, 
-                    description= PLHDES, 
-                    long_description= README, 
-                    long_description_content_type="text/markdown", 
-                    url= PLHREP, 
-                    project_urls={ "Bug Tracker" : PLHBUG },
-                    classifiers=[
-                        f"Programming Language :: Python :: {PLHPVER}", 
-                        f"License :: OSI Approved :: {PLHLICENSE}", 
-                        f"Operating System :: {PLHTARGET}"
-                    ],
-                    package_dir= {"./": PLHSRCF}, 
-                    install_requires= PLHINSREQ, 
-                    packages= setuptools.find_packages(), 
-                    python_requires= PLHPVERVERB
-                )
+                pybuild(data)
 
         def __repr__(self) -> str:
             return '@BUILD'
@@ -134,22 +152,6 @@ help = """Bob's blueprint:
 -t <type>   : creates a template file
               supports::[pymodule, c++]
 """
-
-initTemplate = """
-__title__ = "DDCC"
-__author__ = "NekoMimiOfficial"
-__author_email__ = "nekomimi@tilde.team"
-__description__ = "placeholder"
-__repository__ = "https://github.com/NekoMimiOfficial/DDCC"
-__bug_tracker__ = "https://github.com/NekoMimiOfficial/DDCC/issues"
-__license__ = "Apache2"
-__pyver__ = ">=3.11"
-__target__ = "OS Independent"
-__requirements__ = []
-
-__version__ = '0.1.0'
-"""
-
 
 def kprint(text, col=Pallet.mochaFG):
     factory.text = text
@@ -294,7 +296,7 @@ def refactor(var, tok, vli):
         return var
 
 def runScript():
-    script = nm.read('./build.bob')
+    script = nm.read('./bob.build')
     lexemes = script.split("\n")
     tokens, vars = Lexer(lexemes)
     build = "NONE"
@@ -344,7 +346,7 @@ def templateBuilder(temptype):
         lice = nm.read(f"./LICENSE")
         getoutput("bash -c 'rm ./LICENSE'")
         nm.write(lice.replace("20XX", str(YEAR)), "./LICENSE")
-        nm.write(initTemplate.replace("DDCC", projectName), f"./{projectName}/__init__.py")
+        nm.write(pyTemplate.replace("DDCC", projectName), f"./{projectName}/__init__.py")
         getoutput("bash -c 'git init'")
 
 def mainProc():
@@ -360,7 +362,7 @@ def mainProc():
             exit(1)
         templateBuilder(sys.argv[2])
 
-    elif exists("./build.bob"):
+    elif exists("./bob.build"):
         runScript()
 
     else:

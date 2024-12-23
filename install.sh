@@ -50,7 +50,7 @@ if [[ $pip -eq 1 ]]; then
   mkdir ~/.local/share/Bob
   mkdir ~/.local/bin
   git clone git@github.com:/NekoMimiOfficial/Bob ~/.local/share/Bob --depth 1
-  pip3 install ~/.local/share/Bob/pip/NekoMimi.whl
+  pip3 install ~/.local/share/Bob/pip/NekoMimi.whl #[ISSUE]: please fix this later
   chmod +x ~/.local/share/Bob/bin/bob
   ln -s -r ~/.local/share/Bob/bin/bob ~/.local/bin
   echo "Installation completed!"
