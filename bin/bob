@@ -13,7 +13,7 @@ from NekoMimi import colourimi as cm
 
 
 __version__ = '0.0.4'
-__build__ = 0x020002
+__build__ = 0x020003
 
 # TEMPLATE SECTION:
 # ~~~~~~~~~~~~~~~~~
@@ -177,11 +177,11 @@ class Pallet:
 
 class ERR_LOC:
     @staticmethod
-    def msg(errCode: int, line: int, column: int, lexemes: str) -> str:
+    def msg(errCode: int, line: int, column: int, lexemes: str, additional_data: List[str]= []) -> str:
         l = line
         c = column
         x = lexemes
-        msg: str = f"Internal Error\nNo match found for the error code {errCode}"
+        msg: str = f"Internal locale error\nNo match found for the error code {errCode}"
         match errCode:
             case 0xF6:
                 msg = f"EOL without getting params\nLine: {l+1} has ended without reaching a param\nLine: '{x[l]}'"
@@ -191,10 +191,54 @@ class ERR_LOC:
 
             case 0xF9:
                 msg = f"Typo found on line: {l+1}, col: {len(lexemes[l].split(' ', 1)) + 3}\nMissing \"space\" after variable name\nVariable syntax: $name <value>"
+            
             case 0xFA:
                 msg = f"Typo found on line: {l+1}, col: {len(lexemes[l].split(' ', 1)) + 4}\nMissing '<' after variable name\nVariable syntax: $name <value>"
+
             case 0xF7:
-                msg = f"Variable value assign error\nNo value found for variable: {name}, enclosed by '<' and '>'\nLine: {l+1}, \"{lexemes[l]}\""
+                msg = f"Variable value assign error\nNo value found for variable: {additional_data[0]}, enclosed by '<' and '>'\nLine: {l+1}, \"{lexemes[l]}\""
+
+            case 0xF8:
+                msg = f"Variable assignment terminated without value\nNo value assigned to variable on line: {l+1}\nline: \"{lexemes[l]}\"\nVariable syntax: $name <value>"
+
+            case 0xF4:
+                msg = f"Missing parameter for token: '{additional_data[0]}'\nEnsure starting param bracket '<' must be found on line: {l+1}, col: {c}"
+
+            case 0xF2:
+                msg = f"line: {l+1}, col: 2-{c}, [unknown token '{additional_data[0]}']\navailable tokens: {Tokens.TOKENS}"
+
+            case 0xF5:
+                msg = f"EOL without finding a suitable token\nNo token found on line: {l+1}\ncontents: '{lexemes[l]}'\nSupported tokens: {Tokens.TOKENS}"
+
+            case 0xF3:
+                msg = f"Out of file length\nThe file ended without a complete build instruction set\nEOF line: {l}"
+
+            case 0xFC:
+                msg = f"No variable found called: {additional_data[0]}, on line: {additional_data[1]}"
+
+            case 0xFD:
+                msg = f"Assignment syntax error\nVariable names can not contain spaces\nFound on line: {additional_data[0]}"
+
+            case 0xFE:
+                msg = f"Unknown build type\nUnsupported build type: {additional_data[0]}, on line: {additional_data[1]}\nSupported build types: {BuildTypes.blist}"
+
+            case 0xD1:
+                msg = f"Directory not found\nPlease make sure that '{additional_data[0]}' exists\nBuild source directory on line: {additional_data[1]}"
+
+            case 0xD2:
+                msg = f"Directory not found\nPlease make sure that '{additional_data[0]}' exists\nBuild source directory on line: {additional_data[1]}"
+
+            case 0xFB:
+                msg = "Internal post-lexer error"
+
+            case 0xD3:
+                msg = "No build type configured"
+
+            case 0xD4:
+                msg = "No build source configured"
+
+            case 0xD5:
+                msg = "No test source configured"
 
         return msg
 
@@ -214,7 +258,7 @@ help_msg = """Bob's blueprint:
 
 -h          : shows this help message
 -t <type>   : creates a template file
-              supports::[pymodule, c++]
+              supports::[pymodule, cmake]
 """
 
 # FUNCTIONS AND METHODS:
@@ -232,19 +276,21 @@ def error(errmsg:str , ercode: str, excode: int): #unified error msg generator
     kprint("~~~~~~~~~~~~", Pallet.catRed)
     print('')
     kprint(errmsg, Pallet.catOrange)
-    kprint("Contact Neko for broken build file support", Pallet.catYellow)
+    kprint("Contact Neko for broken build file support", Pallet.catYellow) #since i expect bob to only be used by me and otherwise its a broken build file from one of my projects
     kprint(f"Err {ercode}", Pallet.catRed)
     exit(excode)
 
-def safe_enc(l, c, x): #safely increments to the next character (c) on line (l) for a list of lines aka lexemes (x) errors pn EOL
+def safe_enc(l: int, c: int, x: str) -> int: #safely increments to the next character (c) on line (l) for the current line aka lexemes (x) errors pn EOL
     if len(x[l]) <= (c+1):
         error(ERR_LOC.msg(0xF6, l, c, x), "0xF6", 6)
+        return 127
     else:
         return (c+1)
 
-def p_safe_enc(l, c, x): #same as safe_enc but errors on a non matched bracket
+def p_safe_enc(l: int, c: int, x: str) -> int: #same as safe_enc but errors on a non matched bracket
     if len(x[l]) <= (c+1):
         error(ERR_LOC.msg(0x24, l, c, x), "0x24", 6)
+        return 127
     else:
         return (c+1)
 
@@ -288,12 +334,12 @@ def Lexer(lexemes):
                             split = lexemes[l].split(" ", 1)
                             name = split[0].removeprefix("$")
                             if not '<' in split[1] or not '>' in split[1]:
-                                error(ERR_LOC.msg(0xF7, l, c, lexemes), "0xF7", 7)
+                                error(ERR_LOC.msg(0xF7, l, c, lexemes, [name]), "0xF7", 7)
                             value = split[1].removeprefix("<").removesuffix(">")
                             variables[name] = value
                             break
                         else:
-                            error(f"Variable assignment terminated without value\nNo value assigned to variable on line: {l+1}\nline: \"{lexemes[l]}\"\nVariable syntax: $name <value>", "0xF8", 8)
+                            error(ERR_LOC.msg(0xF8, l, c, lexemes), "0xF8", 8)
                     continue
 
             if word in Tokens.TOKENS and lexemes[l][c] == ' ':
@@ -324,13 +370,13 @@ def Lexer(lexemes):
                         break
 
                 else:
-                    error(f"Missing parameter for token: '{tok}'\nEnsure starting param bracket '<' must be found on line: {l+1}, col: {c}", "0xF4", 4)
+                    error(ERR_LOC.msg(0xF4, l, c, lexemes, [tok]), "0xF4", 4)
 
 
             if not getC == " ":
                 word += getC
             else:
-                error(f"line: {l+1}, col: 2-{c}, [unknown token '{word}']\navailable tokens: {Tokens.TOKENS}", "0xF2", 2)
+                error(ERR_LOC.msg(0xF2, l, c, lexemes, [word]), "0xF2", 2)
             
             if word == "BUILD":
                 tokens.append(Tokens.BUILD())
@@ -341,12 +387,12 @@ def Lexer(lexemes):
                 break
 
             if len(lexemes[l]) < c+2: #type: ignore
-                error(f"EOL without finding a suitable token\nNo token found on line: {l+1}\ncontents: '{lexemes[l]}'\nSupported tokens: {Tokens.TOKENS}", "0xF5", 5)
+                error(ERR_LOC.msg(0xF5, l, c, lexemes), "0xF5", 5)
             c += 1 #type: ignore
 
         if len(lexemes) < l+2:
             if not 'x' in tokens:
-                error(f"Out of file length\nThe file ended without a complete build instruction set\nEOF line: {l}", "0xF3", 3)
+                error(ERR_LOC.msg(0xF3, l, c, lexemes), "0xF3", 3)
             else:
                 u = 0
                 for _ in tokens:
@@ -364,9 +410,9 @@ def refactor(var, tok, vli):
             if varname in vli:
                 return vli[varname]
             else:
-                error(f"No variable found called: {varname}, on line: {tok.line}", "0xFC", 12)
+                error(ERR_LOC.msg(0xFC, 0, 0, "", [varname, tok.line]), "0xFC", 12)
         else:
-            error(f"Assignment syntax error\nVariable names can not contain spaces\nFound on line: {tok.line}", "0xFD", 13)
+            error(ERR_LOC.msg(0xFD, 0, 0, "", [tok.line]), "0xFD", 13)
     else:
         return var
 
@@ -382,33 +428,33 @@ def runScript():
                 build = token.data
                 build = refactor(build, token, vars)
                 if not build in BuildTypes.blist:
-                    error(f"Unknown build type\nUnsupported build type: {build}, on line: {token.line}\nSupported build types: {BuildTypes.blist}", "0xFE", 14)
+                    error(ERR_LOC.msg(0xFE, 0, 0, "", [str(build), token.line]), "0xFE", 14)
             elif token.__repr__() == 'BUILDSRC':
                 data['src'] = token.data
                 data['src'] = refactor(data['src'], token, vars) #type: ignore
                 if not exists(data["src"]): #type: ignore
-                    error(f"Directory not found\nPlease make sure that '{data['src']}' exists\nBuild source directory on line: {token.line}", "0xD1", 15)
+                    error(ERR_LOC.msg(0xD1, 0, 0, "", [str(data["src"]), token.line]), "0xD1", 15)
             elif token.__repr__() == 'TESTSRC':
                 data['test'] = token.data
                 data['test'] = refactor(data['test'], token, vars) #type: ignore
                 if not exists(data["test"]): #type: ignore
-                    error(f"Directory not found\nPlease make sure that '{data['test']}' exists\nBuild source directory on line: {token.line}", "0xD2", 16)
+                    error(ERR_LOC.msg(0xD2, 0, 0, "", [str(data["test"]), token.line]), "0xD2", 16)
 
             else:
-                error("Internal post-lexer error", "0xFB", 11)
+                error(ERR_LOC.msg(0xFB, 0, 0, ""), "0xFB", 11)
 
         else:
             if token.__repr__() == "@BUILD":
                 if build == 'NONE':
-                    error("No build type configured", "0xD3", 17)
+                    error(ERR_LOC.msg(0xD3, 0, 0, ""), "0xD3", 17)
                 if data["src"] == 'NONE':
-                    error("No build source configured", "0xD4", 18)
+                    error(ERR_LOC.msg(0xD4, 0, 0, ""), "0xD4", 18)
 
             elif token.__repr__() == "@TEST":
                 if data["test"] == 'NONE':
-                    error("No test source configured", "0xD5", 19)
+                    error(ERR_LOC.msg(0xD5, 0, 0, ""), "0xD5", 19)
                 if build == 'NONE':
-                    error("No build type configured", "0xD6", 20)
+                    error(ERR_LOC.msg(0xD3, 0, 0, ""), "0xD3", 17)
 
             token.run(build, data)
 
