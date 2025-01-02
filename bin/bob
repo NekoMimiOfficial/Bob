@@ -369,17 +369,6 @@ class Colourimi:
     def short2rgb(self, short:str):
         return self.SHORT2RGB_DICT[short]
 
-# def print_all():
-#     """ Print all 256 xterm color codes.
-#     """
-#     for short, rgb in CLUT:
-#         sys.stdout.write('\033[48;5;%sm%s:%s' % (short, short, rgb))
-#         sys.stdout.write("\033[0m  ")
-#         sys.stdout.write('\033[38;5;%sm%s:%s' % (short, short, rgb))
-#         sys.stdout.write("\033[0m\n")
-#     print ("Printed all codes.")
-#     print ("You can translate a hex or 0-255 code by providing an argument.")
-
     def rgb2short(self, rgb):
         """ Find the closest xterm-256 approximation to the given RGB value.
         @param rgb: Hex code representing an RGB value, eg, 'abcdef'
@@ -408,10 +397,8 @@ class Colourimi:
                     res.append(closest)
                     break
                 i += 1
-        #print '***', res
         res = ''.join([ ('%02.x' % i) for i in res ])
         equiv = self.RGB2SHORT_DICT[ res ]
-        #print '***', res, equiv
         return equiv
 
 
@@ -483,7 +470,7 @@ cmb = Colourimi()
 cm = cmb.colourFactory(cmb)
 
 __version__ = '0.0.4'
-__build__ = 0x020004
+__build__ = 0x020005
 
 # TEMPLATE SECTION:
 # ~~~~~~~~~~~~~~~~~
@@ -575,13 +562,13 @@ def pybuild(data: List[str]):
         project_urls={ "Bug Tracker" : PLHBUG },
         classifiers=[
             f"Programming Language :: Python :: {PLHPVER}", 
-            f"License :: OSI Approved :: {PLHLICENSE}", 
             f"Operating System :: {PLHTARGET}"
         ],
         package_dir= {"./": PLHSRCF}, 
         install_requires= PLHINSREQ, 
         packages= setuptools.find_packages(), 
-        python_requires= PLHPVERVERB
+        python_requires= PLHPVERVERB, 
+        license= PLHLICENSE
     )
 
     kprint("Python Wheel Build Successful!", Pallet.catGreen)
